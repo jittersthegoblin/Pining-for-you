@@ -13,7 +13,12 @@
       <img id="background" class="background" alt="" />
       <div class="scene-vignette"></div>
       <img id="mortimer" class="sprite" alt="Mortimer" />
-      <img id="endingCg" class="ending-cg" alt="Ending illustration" hidden />
+
+      <div id="endingCgStage" class="ending-cg-stage" hidden>
+        <div class="ending-cg-frame">
+          <img id="endingCg" class="ending-cg" alt="Ending illustration" />
+        </div>
+      </div>
 
       <header class="topbar">
         <div class="brand-wrap">
@@ -39,7 +44,7 @@
         </div>
         <p id="dialogue" class="dialogue"></p>
         <div id="choices" class="choices"></div>
-        <div class="hint">Tip: press 1–4 to choose a reply.</div>
+        <div class="hint">Tip: press 1–6 to choose a reply.</div>
       </section>
     </div>
 
@@ -57,16 +62,9 @@
           <div class="meter"><div id="trustBar" class="meter-fill"></div></div>
         </div>
 
-        <div class="chemistry-grid">
-          <div class="chem"><span>Flirty</span><strong id="flirtyValue">0</strong></div>
-          <div class="chem"><span>Sassy</span><strong id="sassyValue">0</strong></div>
-          <div class="chem"><span>Bratty</span><strong id="brattyValue">0</strong></div>
-          <div class="chem"><span>Soft</span><strong id="softValue">0</strong></div>
-        </div>
-
         <div class="route-note">
-          <strong>How it works</strong>
-          <p>Your replies shape the kind of relationship you build. You are never locked into a route; Mortimer remembers the overall pattern.</p>
+          <strong>Mortimer remembers how you treat him</strong>
+          <p>Your choices quietly shape the relationship. There are no visible personality scores and you are never locked into a route.</p>
         </div>
 
         <div id="achievementArea" class="achievement-area"></div>
