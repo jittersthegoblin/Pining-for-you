@@ -77,11 +77,30 @@
         <p class="eyebrow">A GRUMPY LUMBERJACK DATING SIM</p>
         <h1>Pining for You</h1>
         <p>You moved to a quiet cottage beside a pine forest. Your nearest neighbor is broad-shouldered, blunt, impossible to read—and apparently very invested in whether your chimney kills you.</p>
-        <div class="title-buttons">
-          <button id="newGameBtn" class="primary-btn">Start New Game</button>
-          <button id="continueBtn" class="secondary-btn">Continue</button>
+
+        <div id="titleButtons" class="title-buttons">
+          <button id="newGameBtn" class="primary-btn" type="button">Start New Game</button>
+          <button id="continueBtn" class="secondary-btn" type="button">Continue</button>
         </div>
-        <p class="tiny">You play as you. No fixed name, appearance, gender, or player portrait.</p>
+
+        <div id="playerChoice" class="player-choice" hidden>
+          <p class="eyebrow">BEFORE WE BEGIN</p>
+          <h2>How should you appear in CG artwork?</h2>
+          <p>Choose the silhouette used to represent you in special illustrations. This does <strong>not</strong> change your dialogue, pronouns, personality, stats, routes, or Mortimer's romance.</p>
+          <div class="player-choice-grid">
+            <button id="chooseMaleBtn" class="player-choice-btn" type="button">
+              <span class="choice-symbol" aria-hidden="true">♂</span>
+              <span><strong>Male</strong><small>Male silhouette in CG scenes</small></span>
+            </button>
+            <button id="chooseFemaleBtn" class="player-choice-btn" type="button">
+              <span class="choice-symbol" aria-hidden="true">♀</span>
+              <span><strong>Female</strong><small>Female silhouette in CG scenes</small></span>
+            </button>
+          </div>
+          <button id="cancelPlayerChoice" class="selection-back" type="button">← Back</button>
+        </div>
+
+        <p class="tiny">You still play as you. The Male/Female choice only determines the neutral grey silhouette shown in special CG artwork.</p>
       </div>
     </section>
   </main>
