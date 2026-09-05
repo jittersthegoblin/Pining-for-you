@@ -19,6 +19,7 @@ const ASSETS = {
 
 const defaultState = () => ({
   node: 'arrival',
+  playerPresentation: null,
   affection: 0,
   trust: 0,
   chemistry: { flirty: 0, sassy: 0, bratty: 0, soft: 0 },
@@ -40,6 +41,8 @@ const choicesEl = $('choices');
 const chapterLabel = $('chapterLabel');
 const toast = $('toast');
 const titleScreen = $('titleScreen');
+const titleButtons = $('titleButtons');
+const playerChoice = $('playerChoice');
 
 function clamp(n, min=0, max=100){ return Math.max(min, Math.min(max, n)); }
 
@@ -66,6 +69,13 @@ function relationshipInfo() {
 function routeLine(lines) {
   const route = dominantChemistry();
   return lines[route] || lines.balanced || '';
+}
+
+// Future special/end-game CGs can call cgAsset('scene_name') and the game
+// will automatically choose the matching Male/Female silhouette folder.
+function cgAsset(name) {
+  if (!state.playerPresentation) return null;
+  return `assets/cg/${state.playerPresentation}/${name}.webp`;
 }
 
 function addAchievement(id, name) {
