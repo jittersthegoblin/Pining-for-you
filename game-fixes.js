@@ -1,5 +1,101 @@
 // Compatibility layer for route endings + persistent ending collection.
-// Loaded after game-runtime.js so it can safely refine behavior without rewriting the story.
+// Loaded after game-runtime.js so it can refine the route system without
+// changing the story text itself.
+
+const PERSONALITY_POINT_VERSION = 1;
+
+function emptyPersonalityPoints() {
+  return Object.fromEntries(CHEMISTRY_KEYS.map(key => [key, 0]));
+}
+
+function normalizePersonalityTone(tone) {
+  const value = String(tone || '').trim().toLowerCase();
+  if (value === 'sassy') return 'sarcastic';
+  return CHEMISTRY_KEYS.includes(value) ? value : null;
+}
+
+function pointsFromHistory(history = []) {
+  const points = emptyPersonalityPoints();
+  for (const entry of Array.isArray(history) ? history : []) {
+    const key = normalizePersonalityTone(entry && entry.tone);
+    if (key) points[key] += 1;
+  }
+  return points;
+}
+
+function ensurePersonalityPoints(forceHistoryRebuild = false) {
+  const hasCurrentPoints = state.personalityPointVersion === PERSONALITY_POINT_VERSION
+    && state.personalityPoints
+    && CHEMISTRY_KEYS.every(key => Number.isFinite(Number(state.personalityPoints[key])));
+
+  if (forceHistoryRebuild || !hasCurrentPoints) {
+    state.personalityPoints = pointsFromHistory(state.history);
+    state.personalityPointVersion = PERSONALITY_POINT_VERSION;
+  }
+
+  // Keep the legacy chemistry object mirrored to the new one-point totals so
+  // any older story helper that looks at state.chemistry still sees the same
+  // route the ending system sees.
+  state.chemistry = { ...emptyPersonalityPoints(), ...state.personalityPoints };
+  return state.personalityPoints;
+}
+
+// When loading an old save, discard the old weighted chemistry totals and
+// rebuild the route tally from the actual replies the player chose.
+const legacyNormalizeState = normalizeState;
+normalizeState = function(saved = {}) {
+  const merged = legacyNormalizeState(saved);
+  const points = pointsFromHistory(merged.history);
+  merged.personalityPoints = points;
+  merged.personalityPointVersion = PERSONALITY_POINT_VERSION;
+  merged.chemistry = { ...points };
+  return merged;
+};
+
+// Route reactions during the story now use the same exact point tally as the
+// ending. One chosen personality reply = one point. A tie reads as balanced.
+dominantChemistry = function() {
+  const points = ensurePersonalityPoints();
+  const scores = CHEMISTRY_KEYS
+    .map(key => ({ key, points: Number(points[key] || 0) }))
+    .sort((a, b) => b.points - a.points);
+
+  if (!scores.length || scores[0].points <= 0) return 'balanced';
+  if (scores[1] && scores[0].points === scores[1].points) return 'balanced';
+  return scores[0].key;
+};
+
+// The story still contains affection/trust values for reactions, but its old
+// weighted personality values are intentionally ignored here.
+applyEffects = function(effects = {}) {
+  state.affection = clamp(state.affection + (effects.affection || 0));
+  state.trust = clamp(state.trust + (effects.trust || 0));
+
+  if (effects.flag) state.flags[effects.flag] = true;
+  if (effects.flags) Object.assign(state.flags, effects.flags);
+
+  const points = ensurePersonalityPoints();
+  const totalPoints = CHEMISTRY_KEYS.reduce((sum, key) => sum + Number(points[key] || 0), 0);
+  if (totalPoints >= 5) addAchievement('chemistry', 'A Pattern Emerges');
+  if (state.affection >= 20) addAchievement('warming', 'Defrosting the Lumberjack');
+  if (state.trust >= 18) addAchievement('trusted', 'He Told You On Purpose');
+};
+
+// This is the only place personality points are awarded.
+selectChoice = function(c) {
+  const tone = normalizePersonalityTone(c.tone);
+  state.history.push({ node: state.node, choice: c.text, tone: c.tone });
+
+  const points = ensurePersonalityPoints();
+  if (tone) points[tone] += 1;
+  state.personalityPoints = points;
+  state.personalityPointVersion = PERSONALITY_POINT_VERSION;
+  state.chemistry = { ...points };
+
+  applyEffects(c.effects);
+  state.node = c.next;
+  renderNode();
+};
 
 unlockEnding = function(endingNumber) {
   const n = Number(endingNumber);
@@ -14,8 +110,9 @@ unlockEnding = function(endingNumber) {
 };
 
 function personalityStanding() {
+  const points = ensurePersonalityPoints();
   const scores = CHEMISTRY_KEYS
-    .map(key => ({ key, points: Number(state.chemistry[key] || 0) }))
+    .map(key => ({ key, points: Number(points[key] || 0) }))
     .sort((a, b) => b.points - a.points);
 
   const topScore = scores.length ? scores[0].points : 0;
@@ -29,9 +126,6 @@ endingText = function(s) {
   const route = standing.leaders.length === 1 ? standing.leaders[0].key : 'balanced';
   let title, body, endingNumber;
 
-  // The route is now decided by ONE hidden point per personality answer.
-  // A clear first place always wins its matching ending. Trust/Affection can
-  // still shape dialogue, but they do not override the player's personality.
   if (route === 'soft') {
     endingNumber = 1;
     title = 'HOME IS QUIET WITH YOU';
