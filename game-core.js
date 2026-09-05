@@ -17,12 +17,14 @@ const ASSETS = {
   }
 };
 
+const CHEMISTRY_KEYS = ['flirty', 'sarcastic', 'bratty', 'soft', 'shy', 'anxious'];
+
 const defaultState = () => ({
   node: 'arrival',
   playerPresentation: null,
   affection: 0,
   trust: 0,
-  chemistry: { flirty: 0, sassy: 0, bratty: 0, soft: 0 },
+  chemistry: { flirty: 0, sarcastic: 0, bratty: 0, soft: 0, shy: 0, anxious: 0 },
   flags: {},
   achievements: [],
   history: [],
@@ -36,6 +38,7 @@ const $ = (id) => document.getElementById(id);
 const bg = $('background');
 const sprite = $('mortimer');
 const endingCg = $('endingCg');
+const endingCgStage = $('endingCgStage');
 const dialogue = $('dialogue');
 const speaker = $('speaker');
 const moodChip = $('moodChip');
@@ -48,8 +51,22 @@ const playerChoice = $('playerChoice');
 
 function clamp(n, min=0, max=100){ return Math.max(min, Math.min(max, n)); }
 
+function normalizeState(saved={}) {
+  const fresh = defaultState();
+  const merged = Object.assign(fresh, saved || {});
+  const oldChem = (saved && saved.chemistry) || {};
+  merged.chemistry = { ...fresh.chemistry };
+  for (const key of CHEMISTRY_KEYS) merged.chemistry[key] = Number(oldChem[key] || 0);
+  // Backwards compatibility for saves created when the route was called “Sassy”.
+  merged.chemistry.sarcastic += Number(oldChem.sassy || 0);
+  merged.flags = { ...(saved.flags || {}) };
+  merged.achievements = Array.isArray(saved.achievements) ? saved.achievements : [];
+  merged.history = Array.isArray(saved.history) ? saved.history : [];
+  return merged;
+}
+
 function dominantChemistry() {
-  const entries = Object.entries(state.chemistry).sort((a,b) => b[1]-a[1]);
+  const entries = CHEMISTRY_KEYS.map(key => [key, state.chemistry[key] || 0]).sort((a,b) => b[1]-a[1]);
   if (!entries.length) return 'balanced';
   const [top, second] = entries;
   if (top[1] < 3 || top[1] - second[1] <= 1) return 'balanced';
@@ -57,14 +74,15 @@ function dominantChemistry() {
 }
 
 function relationshipInfo() {
-  const c = state.chemistry;
-  const total = Object.values(c).reduce((a,b)=>a+b,0);
+  const total = CHEMISTRY_KEYS.reduce((sum, key) => sum + (state.chemistry[key] || 0), 0);
   const route = dominantChemistry();
   if (total < 4) return { name: 'New Neighbors', desc: 'You have only just met the grump next door.' };
-  if (route === 'flirty') return { name: 'Dangerously Flirty Neighbors', desc: 'Mortimer complains about your flirting. The color in his ears keeps undermining him.' };
-  if (route === 'sassy') return { name: 'Sparring Partners', desc: 'Your favorite shared hobby is arguing. Neither of you seems interested in stopping.' };
+  if (route === 'flirty') return { name: 'Dangerously Flirty Neighbors', desc: 'Mortimer pretends your flirting is a nuisance. His face keeps betraying him.' };
+  if (route === 'sarcastic') return { name: 'Dry Wit, Warm Hands', desc: 'You trade deadpan remarks like a shared language. Somehow, he is smiling more often.' };
   if (route === 'bratty') return { name: 'Menace & Mountain', desc: 'You poke the bear. The bear grumbles, fixes your porch, and keeps coming back.' };
   if (route === 'soft') return { name: 'Quiet Safe Place', desc: 'Around you, Mortimer is learning that silence can feel like company instead of loneliness.' };
+  if (route === 'shy') return { name: 'Gentle Ground', desc: 'Mortimer has learned to slow down around you, giving every tender moment room to breathe.' };
+  if (route === 'anxious') return { name: 'Watchful Comfort', desc: 'He notices the worry before you name it and has quietly become very good at helping you feel safe.' };
   return { name: 'Pining Neighbors', desc: 'Teasing, trust, warmth and stubbornness have tangled together into something neither of you can pretend is casual.' };
 }
 
@@ -94,13 +112,12 @@ function showToast(text) {
 function applyEffects(effects={}) {
   state.affection = clamp(state.affection + (effects.affection || 0));
   state.trust = clamp(state.trust + (effects.trust || 0));
-  for (const tone of ['flirty','sassy','bratty','soft']) {
-    state.chemistry[tone] += effects[tone] || 0;
-  }
+  for (const tone of CHEMISTRY_KEYS) state.chemistry[tone] += effects[tone] || 0;
+  if (effects.sassy) state.chemistry.sarcastic += effects.sassy;
   if (effects.flag) state.flags[effects.flag] = true;
   if (effects.flags) Object.assign(state.flags, effects.flags);
 
-  const totalChem = Object.values(state.chemistry).reduce((a,b)=>a+b,0);
+  const totalChem = CHEMISTRY_KEYS.reduce((sum, key) => sum + (state.chemistry[key] || 0), 0);
   if (totalChem >= 5) addAchievement('chemistry', 'A Pattern Emerges');
   if (state.affection >= 20) addAchievement('warming', 'Defrosting the Lumberjack');
   if (state.trust >= 18) addAchievement('trusted', 'He Told You On Purpose');
