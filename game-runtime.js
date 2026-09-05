@@ -107,20 +107,59 @@ function achievementName(id) {
 function autoSave() { localStorage.setItem('piningForYouSave', JSON.stringify(state)); }
 function manualSave() { autoSave(); showToast('Game saved locally'); }
 function hasSave() { return !!localStorage.getItem('piningForYouSave'); }
+
+let playerChoiceMode = 'new';
+
+function showPlayerChoice(mode='new') {
+  playerChoiceMode = mode;
+  titleScreen.classList.remove('hidden');
+  titleButtons.hidden = true;
+  playerChoice.hidden = false;
+}
+
+function hidePlayerChoice() {
+  playerChoice.hidden = true;
+  titleButtons.hidden = false;
+}
+
+function beginWithPresentation(presentation) {
+  if (!['male', 'female'].includes(presentation)) return;
+  if (playerChoiceMode === 'new') state = defaultState();
+  state.playerPresentation = presentation;
+  hidePlayerChoice();
+  titleScreen.classList.add('hidden');
+  renderNode();
+}
+
 function loadGame() {
   const raw = localStorage.getItem('piningForYouSave');
   if (!raw) return newGame();
   try { state = Object.assign(defaultState(), JSON.parse(raw)); } catch { state = defaultState(); }
+
+  // Existing saves made before this feature simply choose a silhouette once,
+  // then continue exactly where they left off.
+  if (!state.playerPresentation) {
+    showPlayerChoice('continue');
+    return;
+  }
+
+  hidePlayerChoice();
   titleScreen.classList.add('hidden');
   renderNode();
 }
+
 function newGame() {
+  showPlayerChoice('new');
+}
+
+function restart() {
+  if (!confirm('Restart the story? Your current local save will be replaced.')) return;
+  const presentation = state.playerPresentation;
   state = defaultState();
+  state.playerPresentation = presentation;
+  hidePlayerChoice();
   titleScreen.classList.add('hidden');
   renderNode();
-}
-function restart() {
-  if (confirm('Restart the story? Your current local save will be replaced.')) newGame();
 }
 
 function openStats(open=true) {
@@ -132,6 +171,9 @@ function openStats(open=true) {
 $('newGameBtn').addEventListener('click', newGame);
 $('continueBtn').addEventListener('click', loadGame);
 $('continueBtn').disabled = !hasSave();
+$('chooseMaleBtn').addEventListener('click', ()=>beginWithPresentation('male'));
+$('chooseFemaleBtn').addEventListener('click', ()=>beginWithPresentation('female'));
+$('cancelPlayerChoice').addEventListener('click', hidePlayerChoice);
 $('statsBtn').addEventListener('click', ()=>openStats(true));
 $('closeStats').addEventListener('click', ()=>openStats(false));
 $('statsPanel').addEventListener('click', e=>{ if(e.target === $('statsPanel')) openStats(false); });
@@ -139,6 +181,7 @@ $('saveBtn').addEventListener('click', manualSave);
 $('restartBtn').addEventListener('click', restart);
 
 document.addEventListener('keydown', (e)=>{
+  if (!titleScreen.classList.contains('hidden')) return;
   if ($('statsPanel').classList.contains('open')) {
     if (e.key === 'Escape') openStats(false);
     return;
