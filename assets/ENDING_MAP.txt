@@ -1,0 +1,15 @@
+Pining for You — Ending CG Mapping
+
+1 — Gentle / forehead kiss
+2 — Shy / intimate tea
+3 — Anxious / protective blanket
+4 — Flirty / chin tilt
+5 — Bratty / pinned against wall
+6 — Sarcastic / Mortimer genuinely laughing
+7 — Put Down Roots / porch together
+8 — Long Way Around / hand caught before leaving
+9 — Just Neighbors / carved fox gift
+
+Each ending has:
+ending_N_male.png
+ending_N_female.png
