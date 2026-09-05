@@ -2,7 +2,7 @@
 // Loaded after game-runtime.js so it can refine the route system without
 // changing the story text itself.
 
-const PERSONALITY_POINT_VERSION = 1;
+const PERSONALITY_POINT_VERSION = 2;
 
 function emptyPersonalityPoints() {
   return Object.fromEntries(CHEMISTRY_KEYS.map(key => [key, 0]));
@@ -33,15 +33,12 @@ function ensurePersonalityPoints(forceHistoryRebuild = false) {
     state.personalityPointVersion = PERSONALITY_POINT_VERSION;
   }
 
-  // Keep the legacy chemistry object mirrored to the new one-point totals so
-  // any older story helper that looks at state.chemistry still sees the same
-  // route the ending system sees.
   state.chemistry = { ...emptyPersonalityPoints(), ...state.personalityPoints };
   return state.personalityPoints;
 }
 
-// When loading an old save, discard the old weighted chemistry totals and
-// rebuild the route tally from the actual replies the player chose.
+// Old saves are rebuilt from the literal reply history, so every reply counts
+// once regardless of the weighted values that older game versions assigned.
 const legacyNormalizeState = normalizeState;
 normalizeState = function(saved = {}) {
   const merged = legacyNormalizeState(saved);
@@ -52,8 +49,7 @@ normalizeState = function(saved = {}) {
   return merged;
 };
 
-// Route reactions during the story now use the same exact point tally as the
-// ending. One chosen personality reply = one point. A tie reads as balanced.
+// Story reactions and endings both read this same one-point tally.
 dominantChemistry = function() {
   const points = ensurePersonalityPoints();
   const scores = CHEMISTRY_KEYS
@@ -65,8 +61,8 @@ dominantChemistry = function() {
   return scores[0].key;
 };
 
-// The story still contains affection/trust values for reactions, but its old
-// weighted personality values are intentionally ignored here.
+// Affection and Trust still affect Mortimer's dialogue/reactions. The old
+// weighted personality values inside effects are deliberately ignored.
 applyEffects = function(effects = {}) {
   state.affection = clamp(state.affection + (effects.affection || 0));
   state.trust = clamp(state.trust + (effects.trust || 0));
@@ -81,12 +77,14 @@ applyEffects = function(effects = {}) {
   if (state.trust >= 18) addAchievement('trusted', 'He Told You On Purpose');
 };
 
-// This is the only place personality points are awarded.
+// This is the ONLY place a personality point is awarded. We prepare the tally
+// before writing the new history entry, then add exactly one point afterward.
 selectChoice = function(c) {
   const tone = normalizePersonalityTone(c.tone);
+  const points = ensurePersonalityPoints();
+
   state.history.push({ node: state.node, choice: c.text, tone: c.tone });
 
-  const points = ensurePersonalityPoints();
   if (tone) points[tone] += 1;
   state.personalityPoints = points;
   state.personalityPointVersion = PERSONALITY_POINT_VERSION;
