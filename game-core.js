@@ -27,6 +27,7 @@ const defaultState = () => ({
   achievements: [],
   history: [],
   ended: false,
+  endingNumber: null,
 });
 
 let state = defaultState();
@@ -34,6 +35,7 @@ let state = defaultState();
 const $ = (id) => document.getElementById(id);
 const bg = $('background');
 const sprite = $('mortimer');
+const endingCg = $('endingCg');
 const dialogue = $('dialogue');
 const speaker = $('speaker');
 const moodChip = $('moodChip');
@@ -71,11 +73,9 @@ function routeLine(lines) {
   return lines[route] || lines.balanced || '';
 }
 
-// Future special/end-game CGs can call cgAsset('scene_name') and the game
-// will automatically choose the matching Male/Female silhouette folder.
-function cgAsset(name) {
-  if (!state.playerPresentation) return null;
-  return `assets/cg/${state.playerPresentation}/${name}.webp`;
+function cgAsset(endingNumber) {
+  if (!state.playerPresentation || !endingNumber) return null;
+  return `assets/ending_${endingNumber}_${state.playerPresentation}.png`;
 }
 
 function addAchievement(id, name) {
