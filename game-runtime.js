@@ -1,3 +1,98 @@
+const ENDING_GALLERY_META = {
+  1: { title: 'HOME IS QUIET WITH YOU' },
+  2: { title: 'TAKE YOUR TIME' },
+  3: { title: 'I’VE GOT YOU' },
+  4: { title: 'FIRELIGHT' },
+  5: { title: 'KEEP UP, MORTIMER' },
+  6: { title: 'SAME ARGUMENT TOMORROW' },
+  7: { title: 'PUT DOWN ROOTS' },
+  8: { title: 'THE LONG WAY AROUND' },
+  9: { title: 'JUST NEIGHBORS' },
+};
+
+function readEndingCollection() {
+  const fallback = { unlocked: [], lastPresentation: null };
+  try {
+    const raw = localStorage.getItem('piningForYouEndings');
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return {
+      unlocked: Array.isArray(parsed.unlocked)
+        ? [...new Set(parsed.unlocked.map(Number).filter(n => n >= 1 && n <= 9))].sort((a,b)=>a-b)
+        : [],
+      lastPresentation: ['male','female'].includes(parsed.lastPresentation) ? parsed.lastPresentation : null,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveEndingCollection(collection) {
+  localStorage.setItem('piningForYouEndings', JSON.stringify(collection));
+  updateGalleryCount(collection);
+}
+
+function syncEndingCollection() {
+  const collection = readEndingCollection();
+  const unlocked = new Set(collection.unlocked);
+
+  const absorbAchievements = (achievements=[]) => {
+    for (const id of achievements) {
+      const match = /^ending_(\d+)$/.exec(String(id));
+      if (match) {
+        const n = Number(match[1]);
+        if (n >= 1 && n <= 9) unlocked.add(n);
+      }
+    }
+  };
+
+  absorbAchievements(state.achievements);
+  if (state.endingNumber >= 1 && state.endingNumber <= 9) unlocked.add(Number(state.endingNumber));
+
+  // Migrate endings from saves created before the gallery existed.
+  try {
+    const rawSave = localStorage.getItem('piningForYouSave');
+    if (rawSave) {
+      const oldSave = JSON.parse(rawSave);
+      absorbAchievements(oldSave.achievements);
+      if (oldSave.endingNumber >= 1 && oldSave.endingNumber <= 9) unlocked.add(Number(oldSave.endingNumber));
+      if (!collection.lastPresentation && ['male','female'].includes(oldSave.playerPresentation)) {
+        collection.lastPresentation = oldSave.playerPresentation;
+      }
+    }
+  } catch {}
+
+  if (state.playerPresentation) collection.lastPresentation = state.playerPresentation;
+  collection.unlocked = [...unlocked].sort((a,b)=>a-b);
+  saveEndingCollection(collection);
+  return collection;
+}
+
+function unlockEnding(endingNumber) {
+  const collection = syncEndingCollection();
+  const n = Number(endingNumber);
+  if (!collection.unlocked.includes(n)) collection.unlocked.push(n);
+  collection.unlocked.sort((a,b)=>a-b);
+  if (state.playerPresentation) collection.lastPresentation = state.playerPresentation;
+  saveEndingCollection(collection);
+}
+
+function galleryPresentation(collection=readEndingCollection()) {
+  return state.playerPresentation || collection.lastPresentation || 'female';
+}
+
+function galleryCgAsset(endingNumber, collection=readEndingCollection()) {
+  return `assets/ending_${endingNumber}_${galleryPresentation(collection)}.png`;
+}
+
+function updateGalleryCount(collection=readEndingCollection()) {
+  const count = collection.unlocked.length;
+  const titleCount = $('titleGalleryCount');
+  const progress = $('galleryProgress');
+  if (titleCount) titleCount.textContent = `${count}/9`;
+  if (progress) progress.textContent = `${count} / 9 unlocked`;
+}
+
 function endingText(s) {
   s.ended = true;
   const route = dominantChemistry();
@@ -43,6 +138,7 @@ function endingText(s) {
 
   s.endingNumber = endingNumber;
   s.flags.endingTitle = title;
+  unlockEnding(endingNumber);
 
   if (!s.flags.endingAwarded) {
     s.flags.endingAwarded = true;
@@ -120,6 +216,7 @@ function renderNode() {
     choicesEl.appendChild(btn);
   }
   updateStats();
+  updateGalleryCount();
   autoSave();
 }
 
@@ -161,6 +258,80 @@ function achievementName(id) {
   return map[id] || id.replaceAll('_',' ').toUpperCase();
 }
 
+function renderEndingGallery() {
+  const collection = syncEndingCollection();
+  const unlocked = new Set(collection.unlocked);
+  const grid = $('galleryGrid');
+  grid.innerHTML = '';
+
+  for (let number = 1; number <= 9; number++) {
+    const isUnlocked = unlocked.has(number);
+    const meta = ENDING_GALLERY_META[number];
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `gallery-item ${isUnlocked ? 'unlocked' : 'locked'}`;
+    card.disabled = !isUnlocked;
+
+    if (isUnlocked) {
+      const img = document.createElement('img');
+      img.className = 'gallery-thumb';
+      img.src = galleryCgAsset(number, collection);
+      img.alt = `${meta.title} ending thumbnail`;
+      img.loading = 'lazy';
+      card.appendChild(img);
+
+      const copy = document.createElement('span');
+      copy.className = 'gallery-item-copy';
+      copy.innerHTML = `<small>Ending ${number}</small><strong>${meta.title}</strong>`;
+      card.appendChild(copy);
+      card.addEventListener('click', () => openGalleryPreview(number));
+    } else {
+      const lock = document.createElement('span');
+      lock.className = 'gallery-lock';
+      lock.innerHTML = '<span class="gallery-pine">▲</span><span class="gallery-lock-mark">?</span>';
+      card.appendChild(lock);
+
+      const copy = document.createElement('span');
+      copy.className = 'gallery-item-copy';
+      copy.innerHTML = `<small>Ending ${number}</small><strong>???</strong>`;
+      card.appendChild(copy);
+    }
+
+    grid.appendChild(card);
+  }
+
+  updateGalleryCount(collection);
+}
+
+function openGallery(open=true) {
+  const panel = $('endingGallery');
+  panel.classList.toggle('open', open);
+  panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  if (open) renderEndingGallery();
+  else closeGalleryPreview();
+}
+
+function openGalleryPreview(number) {
+  const collection = syncEndingCollection();
+  if (!collection.unlocked.includes(Number(number))) return;
+  const meta = ENDING_GALLERY_META[number];
+  const preview = $('galleryPreview');
+  const image = $('galleryPreviewImage');
+  image.src = galleryCgAsset(number, collection);
+  image.alt = `${meta.title} ending illustration`;
+  $('galleryPreviewNumber').textContent = `ENDING ${number}`;
+  $('galleryPreviewTitle').textContent = meta.title;
+  preview.hidden = false;
+}
+
+function closeGalleryPreview() {
+  const preview = $('galleryPreview');
+  if (!preview) return;
+  preview.hidden = true;
+  const image = $('galleryPreviewImage');
+  if (image) image.removeAttribute('src');
+}
+
 function autoSave() { localStorage.setItem('piningForYouSave', JSON.stringify(state)); }
 function manualSave() { autoSave(); showToast('Game saved locally'); }
 function hasSave() { return !!localStorage.getItem('piningForYouSave'); }
@@ -183,6 +354,9 @@ function beginWithPresentation(presentation) {
   if (!['male', 'female'].includes(presentation)) return;
   if (playerChoiceMode === 'new') state = defaultState();
   state.playerPresentation = presentation;
+  const collection = syncEndingCollection();
+  collection.lastPresentation = presentation;
+  saveEndingCollection(collection);
   hidePlayerChoice();
   titleScreen.classList.add('hidden');
   renderNode();
@@ -192,6 +366,8 @@ function loadGame() {
   const raw = localStorage.getItem('piningForYouSave');
   if (!raw) return newGame();
   try { state = normalizeState(JSON.parse(raw)); } catch { state = defaultState(); }
+
+  syncEndingCollection();
 
   if (!state.playerPresentation) {
     showPlayerChoice('continue');
@@ -205,6 +381,7 @@ function loadGame() {
 
 function newGame() {
   setEndingArtVisible(false);
+  openGallery(false);
   showPlayerChoice('new');
 }
 
@@ -214,6 +391,7 @@ function restart() {
   state = defaultState();
   state.playerPresentation = presentation;
   setEndingArtVisible(false);
+  openGallery(false);
   hidePlayerChoice();
   titleScreen.classList.add('hidden');
   renderNode();
@@ -228,6 +406,11 @@ function openStats(open=true) {
 $('newGameBtn').addEventListener('click', newGame);
 $('continueBtn').addEventListener('click', loadGame);
 $('continueBtn').disabled = !hasSave();
+$('titleGalleryBtn').addEventListener('click', ()=>openGallery(true));
+$('galleryBtn').addEventListener('click', ()=>openGallery(true));
+$('closeGallery').addEventListener('click', ()=>openGallery(false));
+$('closeGalleryPreview').addEventListener('click', closeGalleryPreview);
+$('endingGallery').addEventListener('click', e=>{ if(e.target === $('endingGallery')) openGallery(false); });
 $('chooseMaleBtn').addEventListener('click', ()=>beginWithPresentation('male'));
 $('chooseFemaleBtn').addEventListener('click', ()=>beginWithPresentation('female'));
 $('cancelPlayerChoice').addEventListener('click', hidePlayerChoice);
@@ -238,6 +421,14 @@ $('saveBtn').addEventListener('click', manualSave);
 $('restartBtn').addEventListener('click', restart);
 
 document.addEventListener('keydown', (e)=>{
+  if ($('endingGallery').classList.contains('open')) {
+    if (e.key === 'Escape') {
+      if (!$('galleryPreview').hidden) closeGalleryPreview();
+      else openGallery(false);
+    }
+    return;
+  }
+
   if (!titleScreen.classList.contains('hidden')) return;
   if ($('statsPanel').classList.contains('open')) {
     if (e.key === 'Escape') openStats(false);
@@ -250,5 +441,8 @@ document.addEventListener('keydown', (e)=>{
   }
 });
 
-// Warm up normal scene art. Ending CGs load only when earned so the game does not preload 18 large images.
+syncEndingCollection();
+updateGalleryCount();
+
+// Warm up normal scene art. Ending CGs and gallery thumbnails load only when needed.
 [...Object.values(ASSETS.backgrounds), ...Object.values(ASSETS.sprites)].forEach(src => { const im = new Image(); im.src = src; });
