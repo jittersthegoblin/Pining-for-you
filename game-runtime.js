@@ -14,16 +14,16 @@ function endingText(s) {
   } else if (route === 'shy') {
     endingNumber = 2;
     title = 'TAKE YOUR TIME';
-    body = `Mortimer learns not to crowd the quiet moments. Tonight, he simply comes close in the warm kitchen and offers you a steaming mug with both care and patience. His fingers brush yours around the ceramic. “Made it the way you like it.” His smile is small, private, and entirely for you. There is no demand to say the right thing. You do not need one.`;
+    body = `Mortimer learns that tenderness does not have to arrive all at once. In the warm kitchen, he brings you tea exactly the way you like it and places the mug carefully into your hands. His fingers brush yours around the ceramic, but he does not turn the moment into a test you have to pass. “Careful. Hot,” he murmurs, smiling that small private smile he seems to save for you. With Mortimer, going slowly never feels like being left behind.`;
   } else if (route === 'anxious') {
     endingNumber = 3;
     title = 'I’VE GOT YOU';
-    body = `The worry catches you before the words do. Mortimer notices anyway. Of course he does. He drapes a heavy blanket around your shoulders and pulls it closed with careful hands, his expression turning firm in that way it does when he has decided something matters. “Hey. Look at me.” His voice softens. “You’re safe. I’ve got you.” And for once, you let yourself believe him.`;
+    body = `The worry catches you before the words do. Mortimer notices anyway. Of course he does. He drapes a heavy blanket around your shoulders and pulls it closed with careful hands, grounding you in warmth and the solid certainty of his presence. “Hey. Look at me.” His voice softens. “You’re safe. I’ve got you.” He does not promise that nothing frightening will ever happen. He promises you will not have to face it alone.`;
   } else if (route === 'flirty') {
     endingNumber = 4;
     title = 'FIRELIGHT';
     body = `Months of shameless flirting finally corner Mortimer into admitting he has been answering it all along. In the warm cabin light, he catches your chin gently between his fingers and tips your face toward his. That rare, knowing little smile appears. “Still got something clever to say?” You barely have time to try before he closes the distance.`;
-  } else if (route === 'sassy' || route === 'sarcastic') {
+  } else if (route === 'sarcastic') {
     endingNumber = 6;
     title = 'SAME ARGUMENT TOMORROW';
     body = `You make one last dry remark about how romantic he has become. Mortimer tries to glare. He fails spectacularly. The laugh that escapes him is warm and helpless, and soon his forehead is nearly touching yours while you grin up at him. “You’re impossible,” he says. You remind him that he likes impossible. His smile answers before he does.`;
@@ -49,11 +49,24 @@ function endingText(s) {
     addAchievement('ending_' + endingNumber, `Ending: ${title}`);
   }
 
-  return `<div class="ending-card"><h3>${title}</h3><p>${body}</p><p class="ending-caption">Ending ${endingNumber} · ${state.playerPresentation === 'female' ? 'Female' : 'Male'} silhouette CG</p><p><strong>Your relationship:</strong> ${relationshipInfo().name}</p></div>`;
+  return `<div class="ending-card"><h3>${title}</h3><p>${body}</p><p class="ending-caption">Ending ${endingNumber}</p><p><strong>Your relationship:</strong> ${relationshipInfo().name}</p></div>`;
 }
 
 function getNode(id) { return STORY[id]; }
 function resolve(value) { return typeof value === 'function' ? value(state) : value; }
+
+function setEndingArtVisible(visible, src=null) {
+  const scene = $('scene');
+  if (visible && src) {
+    endingCgStage.hidden = false;
+    endingCg.src = src;
+    scene.classList.add('ending-active');
+  } else {
+    endingCgStage.hidden = true;
+    endingCg.removeAttribute('src');
+    scene.classList.remove('ending-active');
+  }
+}
 
 function renderNode() {
   const node = getNode(state.node);
@@ -76,13 +89,11 @@ function renderNode() {
   if (speakerValue === 'Ending' && state.endingNumber) {
     const src = cgAsset(state.endingNumber);
     if (src) {
-      endingCg.hidden = false;
-      endingCg.src = src;
+      setEndingArtVisible(true, src);
       endingCg.alt = `${state.flags.endingTitle || 'Ending'} illustration with Mortimer and the player silhouette`;
     }
   } else {
-    endingCg.hidden = true;
-    endingCg.removeAttribute('src');
+    setEndingArtVisible(false);
   }
 
   speaker.textContent = speakerValue;
@@ -96,7 +107,7 @@ function renderNode() {
   choices.forEach((c) => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
-    btn.innerHTML = `<span class="tone-tag">${c.tone}</span>${c.text}`;
+    btn.textContent = c.text;
     btn.addEventListener('click', () => selectChoice(c));
     choicesEl.appendChild(btn);
   });
@@ -104,8 +115,7 @@ function renderNode() {
   if (!choices.length && state.ended) {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
-    btn.style.paddingLeft = '14px';
-    btn.innerHTML = '<span class="tone-tag" style="display:none"></span>Play again from the beginning';
+    btn.textContent = 'Play again from the beginning';
     btn.addEventListener('click', newGame);
     choicesEl.appendChild(btn);
   }
@@ -128,7 +138,6 @@ function updateStats() {
   $('trustValue').textContent = state.trust;
   $('affectionBar').style.width = state.affection + '%';
   $('trustBar').style.width = state.trust + '%';
-  for (const tone of ['flirty','sassy','bratty','soft']) $(''+tone+'Value').textContent = state.chemistry[tone];
   const area = $('achievementArea');
   if (!state.achievements.length) area.innerHTML = '<div class="achievement"><span class="badge">○</span><span>No achievements yet.</span></div>';
   else area.innerHTML = state.achievements.map(id => `<div class="achievement"><span class="badge">✦</span><span>${achievementName(id)}</span></div>`).join('');
@@ -182,7 +191,7 @@ function beginWithPresentation(presentation) {
 function loadGame() {
   const raw = localStorage.getItem('piningForYouSave');
   if (!raw) return newGame();
-  try { state = Object.assign(defaultState(), JSON.parse(raw)); } catch { state = defaultState(); }
+  try { state = normalizeState(JSON.parse(raw)); } catch { state = defaultState(); }
 
   if (!state.playerPresentation) {
     showPlayerChoice('continue');
@@ -195,8 +204,7 @@ function loadGame() {
 }
 
 function newGame() {
-  endingCg.hidden = true;
-  endingCg.removeAttribute('src');
+  setEndingArtVisible(false);
   showPlayerChoice('new');
 }
 
@@ -205,8 +213,7 @@ function restart() {
   const presentation = state.playerPresentation;
   state = defaultState();
   state.playerPresentation = presentation;
-  endingCg.hidden = true;
-  endingCg.removeAttribute('src');
+  setEndingArtVisible(false);
   hidePlayerChoice();
   titleScreen.classList.add('hidden');
   renderNode();
@@ -237,7 +244,7 @@ document.addEventListener('keydown', (e)=>{
     return;
   }
   const n = Number(e.key);
-  if (n >= 1 && n <= 4) {
+  if (n >= 1 && n <= 6) {
     const buttons = [...choicesEl.querySelectorAll('.choice-btn')];
     if (buttons[n-1]) buttons[n-1].click();
   }
