@@ -65,10 +65,22 @@ button { font: inherit; }
 .title-card h1 { font-size:clamp(46px,8vw,76px); line-height:.95; margin:2px 0 18px; font-weight:500; }
 .title-card > p:not(.eyebrow):not(.tiny) { color:#d1c3b6; font-size:17px; line-height:1.55; }
 .title-buttons { display:flex; gap:10px; margin-top:24px; }
+.title-buttons[hidden], .player-choice[hidden] { display:none; }
 .primary-btn,.secondary-btn { cursor:pointer; border-radius:9px; padding:12px 18px; border:1px solid transparent; }
 .primary-btn { background:#c7804d; color:#1b1009; font-weight:800; }
 .secondary-btn { background:transparent; border-color:rgba(255,255,255,.2); color:#eee3d8; }
 .secondary-btn:disabled { opacity:.35; cursor:not-allowed; }
+.player-choice { margin-top:24px; padding-top:22px; border-top:1px solid rgba(255,255,255,.12); }
+.player-choice h2 { margin:3px 0 8px; font-size:28px; font-weight:500; }
+.player-choice > p:not(.eyebrow) { margin:0; color:#cfc2b6; font:14px/1.55 system-ui,sans-serif; }
+.player-choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:18px; }
+.player-choice-btn { min-height:92px; display:flex; align-items:center; gap:13px; text-align:left; cursor:pointer; color:var(--ink); border:1px solid rgba(255,255,255,.15); border-radius:11px; background:rgba(255,255,255,.055); padding:13px 15px; transition:.15s ease; }
+.player-choice-btn:hover, .player-choice-btn:focus-visible { outline:none; border-color:rgba(230,162,111,.65); background:rgba(199,128,77,.16); transform:translateY(-1px); }
+.choice-symbol { flex:0 0 46px; width:46px; height:46px; display:grid; place-items:center; border-radius:50%; background:rgba(143,165,134,.14); border:1px solid rgba(143,165,134,.35); color:#e7ded4; font:28px Georgia,serif; }
+.player-choice-btn strong { display:block; font-size:18px; margin-bottom:4px; }
+.player-choice-btn small { display:block; color:#a99b8e; font:11px/1.35 system-ui,sans-serif; }
+.selection-back { margin-top:12px; cursor:pointer; border:0; background:transparent; color:#b8aa9c; padding:7px 0; font:12px system-ui,sans-serif; }
+.selection-back:hover { color:#eee3d8; }
 .tiny { font:11px/1.4 system-ui,sans-serif; color:#8f8277; margin:18px 0 0; }
 .ending-card { text-align:center; }
 .ending-card h3 { margin:0 0 5px; font-size:28px; color:#f0c49f; }
@@ -87,4 +99,5 @@ button { font: inherit; }
   .hint { display:none; }
   .chemistry-grid { grid-template-columns:repeat(2,1fr); }
   .title-card { padding:25px 20px; }
+  .player-choice-grid { grid-template-columns:1fr; }
 }
