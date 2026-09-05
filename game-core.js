@@ -51,25 +51,52 @@ const playerChoice = $('playerChoice');
 
 function clamp(n, min=0, max=100){ return Math.max(min, Math.min(max, n)); }
 
+function toneKey(tone) {
+  const key = String(tone || '').trim().toLowerCase();
+  if (key === 'sassy') return 'sarcastic';
+  return CHEMISTRY_KEYS.includes(key) ? key : null;
+}
+
+function chemistryFromHistory(history=[]) {
+  const points = { flirty: 0, sarcastic: 0, bratty: 0, soft: 0, shy: 0, anxious: 0 };
+  for (const entry of history) {
+    const key = toneKey(entry && entry.tone);
+    if (key) points[key] += 1;
+  }
+  return points;
+}
+
 function normalizeState(saved={}) {
   const fresh = defaultState();
   const merged = Object.assign(fresh, saved || {});
-  const oldChem = (saved && saved.chemistry) || {};
-  merged.chemistry = { ...fresh.chemistry };
-  for (const key of CHEMISTRY_KEYS) merged.chemistry[key] = Number(oldChem[key] || 0);
-  // Backwards compatibility for saves created when the route was called “Sassy”.
-  merged.chemistry.sarcastic += Number(oldChem.sassy || 0);
   merged.flags = { ...(saved.flags || {}) };
   merged.achievements = Array.isArray(saved.achievements) ? saved.achievements : [];
   merged.history = Array.isArray(saved.history) ? saved.history : [];
+
+  // New scoring model: every personality reply is exactly one hidden point.
+  // Existing saves are rebuilt from their actual reply history so the old
+  // weighted values (for example Shy +4 vs Flirty +2) cannot skew routes.
+  if (merged.history.length) {
+    merged.chemistry = chemistryFromHistory(merged.history);
+  } else {
+    const oldChem = (saved && saved.chemistry) || {};
+    merged.chemistry = { ...fresh.chemistry };
+    for (const key of CHEMISTRY_KEYS) {
+      if (Number(oldChem[key] || 0) > 0) merged.chemistry[key] = 1;
+    }
+    if (Number(oldChem.sassy || 0) > 0) merged.chemistry.sarcastic = Math.max(1, merged.chemistry.sarcastic);
+  }
   return merged;
 }
 
 function dominantChemistry() {
-  const entries = CHEMISTRY_KEYS.map(key => [key, state.chemistry[key] || 0]).sort((a,b) => b[1]-a[1]);
-  if (!entries.length) return 'balanced';
+  const entries = CHEMISTRY_KEYS
+    .map(key => [key, state.chemistry[key] || 0])
+    .sort((a,b) => b[1]-a[1]);
+  if (!entries.length || entries[0][1] <= 0) return 'balanced';
   const [top, second] = entries;
-  if (top[1] < 3 || top[1] - second[1] <= 1) return 'balanced';
+  // Only an exact tie for first place becomes Balanced. A one-point lead wins.
+  if (second && top[1] === second[1]) return 'balanced';
   return top[0];
 }
 
@@ -110,10 +137,18 @@ function showToast(text) {
 }
 
 function applyEffects(effects={}) {
+  // Affection and trust are still used for dialogue flavour/progression, but
+  // they no longer determine which personality ending wins.
   state.affection = clamp(state.affection + (effects.affection || 0));
   state.trust = clamp(state.trust + (effects.trust || 0));
-  for (const tone of CHEMISTRY_KEYS) state.chemistry[tone] += effects[tone] || 0;
-  if (effects.sassy) state.chemistry.sarcastic += effects.sassy;
+
+  // Crucially, the numeric values written in the story no longer act as route
+  // weights. Any reply tagged with a personality gives exactly ONE point.
+  for (const tone of CHEMISTRY_KEYS) {
+    if (Number(effects[tone] || 0) > 0) state.chemistry[tone] += 1;
+  }
+  if (Number(effects.sassy || 0) > 0) state.chemistry.sarcastic += 1;
+
   if (effects.flag) state.flags[effects.flag] = true;
   if (effects.flags) Object.assign(state.flags, effects.flags);
 
