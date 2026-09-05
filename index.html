@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#17110d" />
+  <title>Pining for You — Mortimer Dating Sim</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="game" class="game-shell" aria-live="polite">
+    <div id="scene" class="scene" role="img" aria-label="Scene background">
+      <img id="background" class="background" alt="" />
+      <div class="scene-vignette"></div>
+      <img id="mortimer" class="sprite" alt="Mortimer" />
+
+      <header class="topbar">
+        <div class="brand-wrap">
+          <span class="pine">▲</span>
+          <div>
+            <div class="brand">PINING FOR YOU</div>
+            <div id="chapterLabel" class="chapter-label">Chapter 1</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="statsBtn" class="icon-btn" type="button">Relationship</button>
+          <button id="saveBtn" class="icon-btn" type="button">Save</button>
+          <button id="restartBtn" class="icon-btn danger" type="button">Restart</button>
+        </div>
+      </header>
+
+      <section id="toast" class="toast" aria-live="assertive"></section>
+
+      <section id="dialogueBox" class="dialogue-box">
+        <div class="speaker-row">
+          <span id="speaker" class="speaker">Mortimer</span>
+          <span id="moodChip" class="mood-chip">Neutral</span>
+        </div>
+        <p id="dialogue" class="dialogue"></p>
+        <div id="choices" class="choices"></div>
+        <div class="hint">Tip: press 1–4 to choose a reply.</div>
+      </section>
+    </div>
+
+    <aside id="statsPanel" class="stats-panel" aria-hidden="true">
+      <div class="stats-card">
+        <button id="closeStats" class="close-btn" aria-label="Close relationship panel">×</button>
+        <p class="eyebrow">YOUR DYNAMIC</p>
+        <h2 id="relationshipName">New Neighbors</h2>
+        <p id="relationshipDesc" class="relationship-desc">You have only just met the grump next door.</p>
+
+        <div class="meter-group">
+          <div class="meter-title"><span>Affection</span><span id="affectionValue">0</span></div>
+          <div class="meter"><div id="affectionBar" class="meter-fill"></div></div>
+          <div class="meter-title"><span>Trust</span><span id="trustValue">0</span></div>
+          <div class="meter"><div id="trustBar" class="meter-fill"></div></div>
+        </div>
+
+        <div class="chemistry-grid">
+          <div class="chem"><span>Flirty</span><strong id="flirtyValue">0</strong></div>
+          <div class="chem"><span>Sassy</span><strong id="sassyValue">0</strong></div>
+          <div class="chem"><span>Bratty</span><strong id="brattyValue">0</strong></div>
+          <div class="chem"><span>Soft</span><strong id="softValue">0</strong></div>
+        </div>
+
+        <div class="route-note">
+          <strong>How it works</strong>
+          <p>Your replies shape the kind of relationship you build. You are never locked into a route; Mortimer remembers the overall pattern.</p>
+        </div>
+
+        <div id="achievementArea" class="achievement-area"></div>
+      </div>
+    </aside>
+
+    <section id="titleScreen" class="title-screen">
+      <div class="title-card">
+        <p class="eyebrow">A GRUMPY LUMBERJACK DATING SIM</p>
+        <h1>Pining for You</h1>
+        <p>You moved to a quiet cottage beside a pine forest. Your nearest neighbor is broad-shouldered, blunt, impossible to read—and apparently very invested in whether your chimney kills you.</p>
+        <div class="title-buttons">
+          <button id="newGameBtn" class="primary-btn">Start New Game</button>
+          <button id="continueBtn" class="secondary-btn">Continue</button>
+        </div>
+        <p class="tiny">You play as you. No fixed name, appearance, gender, or player portrait.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="game-core.js"></script>
+  <script src="game-story.js"></script>
+  <script src="game-runtime.js"></script>
+</body>
+</html>
