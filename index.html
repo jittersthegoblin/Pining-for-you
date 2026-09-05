@@ -29,6 +29,7 @@
           </div>
         </div>
         <div class="top-actions">
+          <button id="galleryBtn" class="icon-btn" type="button">Endings</button>
           <button id="statsBtn" class="icon-btn" type="button">Relationship</button>
           <button id="saveBtn" class="icon-btn" type="button">Save</button>
           <button id="restartBtn" class="icon-btn danger" type="button">Restart</button>
@@ -71,6 +72,32 @@
       </div>
     </aside>
 
+    <aside id="endingGallery" class="gallery-panel" aria-hidden="true">
+      <div class="gallery-card">
+        <button id="closeGallery" class="close-btn" aria-label="Close ending gallery">×</button>
+        <p class="eyebrow">ENDING COLLECTION</p>
+        <div class="gallery-heading-row">
+          <div>
+            <h2>Pining Memories</h2>
+            <p>Every ending you reach is kept here, even when you start a new game.</p>
+          </div>
+          <div id="galleryProgress" class="gallery-progress">0 / 9</div>
+        </div>
+        <div id="galleryGrid" class="gallery-grid"></div>
+      </div>
+
+      <div id="galleryPreview" class="gallery-preview" hidden>
+        <button id="closeGalleryPreview" class="gallery-preview-close" type="button" aria-label="Close ending preview">×</button>
+        <div class="gallery-preview-frame">
+          <img id="galleryPreviewImage" alt="Unlocked ending illustration" />
+        </div>
+        <div class="gallery-preview-copy">
+          <p id="galleryPreviewNumber" class="eyebrow"></p>
+          <h3 id="galleryPreviewTitle"></h3>
+        </div>
+      </div>
+    </aside>
+
     <section id="titleScreen" class="title-screen">
       <div class="title-card">
         <p class="eyebrow">A GRUMPY LUMBERJACK DATING SIM</p>
@@ -80,6 +107,7 @@
         <div id="titleButtons" class="title-buttons">
           <button id="newGameBtn" class="primary-btn" type="button">Start New Game</button>
           <button id="continueBtn" class="secondary-btn" type="button">Continue</button>
+          <button id="titleGalleryBtn" class="secondary-btn" type="button">Endings <span id="titleGalleryCount">0/9</span></button>
         </div>
 
         <div id="playerChoice" class="player-choice" hidden>
