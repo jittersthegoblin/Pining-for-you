@@ -1,4 +1,4 @@
-// Small compatibility layer for route endings + persistent ending collection.
+// Compatibility layer for route endings + persistent ending collection.
 // Loaded after game-runtime.js so it can safely refine behavior without rewriting the story.
 
 unlockEnding = function(endingNumber) {
@@ -10,29 +10,32 @@ unlockEnding = function(endingNumber) {
   unlocked.add(n);
   collection.unlocked = [...unlocked].sort((a, b) => a - b);
   if (state.playerPresentation) collection.lastPresentation = state.playerPresentation;
-
-  // Directly persist the union. A later playthrough can add to this list,
-  // but can never replace endings that were already earned.
   saveEndingCollection(collection);
 };
 
+function personalityStanding() {
+  const scores = CHEMISTRY_KEYS
+    .map(key => ({ key, points: Number(state.chemistry[key] || 0) }))
+    .sort((a, b) => b.points - a.points);
+
+  const topScore = scores.length ? scores[0].points : 0;
+  const leaders = scores.filter(item => item.points === topScore && topScore > 0);
+  return { scores, topScore, leaders };
+}
+
 endingText = function(s) {
   s.ended = true;
-  const route = dominantChemistry();
+  const standing = personalityStanding();
+  const route = standing.leaders.length === 1 ? standing.leaders[0].key : 'balanced';
   let title, body, endingNumber;
 
-  // Generic endings are now based on how far the romance developed overall.
-  // Trust still shapes Mortimer's responses throughout the story, but it no
-  // longer blocks naturally lower-trust chemistry routes such as Flirty,
-  // Sarcastic, or Bratty from reaching their intended endings.
-  if (s.affection < 18) {
-    endingNumber = 9;
-    title = 'JUST NEIGHBORS';
-    body = `It never quite becomes the love story either of you might have imagined. But on a cold evening, Mortimer appears at your door with something hidden in one enormous hand. It is a tiny carved fox, sanded smooth, its ears a little crooked. “For the windowsill,” he mutters. He looks almost embarrassed when you take it. The path between your cottages remains. So does he.`;
-  } else if (s.affection < 30) {
-    endingNumber = 8;
-    title = 'THE LONG WAY AROUND';
-    body = `You are halfway down his porch steps when Mortimer reaches after you. His hand closes around yours—not hard, just enough to stop you. For a moment he says nothing. Then his thumb shifts over your knuckles. “Don’t go yet.” It is not a confession. Not quite. But you turn back toward him anyway. Some things are worth taking the long way around.`;
+  // The route is now decided by ONE hidden point per personality answer.
+  // A clear first place always wins its matching ending. Trust/Affection can
+  // still shape dialogue, but they do not override the player's personality.
+  if (route === 'soft') {
+    endingNumber = 1;
+    title = 'HOME IS QUIET WITH YOU';
+    body = `The fire has burned low by the time the conversation fades into comfortable silence. Mortimer gathers you against him as though it is the most natural thing in the world. One hand settles protectively at the back of your head, and then he bends to press a slow kiss to your forehead. “Stay,” he says quietly. There is no loneliness in the cabin anymore.`;
   } else if (route === 'shy') {
     endingNumber = 2;
     title = 'TAKE YOUR TIME';
@@ -45,28 +48,30 @@ endingText = function(s) {
     endingNumber = 4;
     title = 'FIRELIGHT';
     body = `Months of shameless flirting finally corner Mortimer into admitting he has been answering it all along. In the warm cabin light, he catches your chin gently between his fingers and tips your face toward his. That rare, knowing little smile appears. “Still got something clever to say?” You barely have time to try before he closes the distance.`;
-  } else if (route === 'sarcastic') {
-    endingNumber = 6;
-    title = 'SAME ARGUMENT TOMORROW';
-    body = `You make one last dry remark about how romantic he has become. Mortimer tries to glare. He fails spectacularly. The laugh that escapes him is warm and helpless, and soon his forehead is nearly touching yours while you grin up at him. “You’re impossible,” he says. You remind him that he likes impossible. His smile answers before he does.`;
   } else if (route === 'bratty') {
     endingNumber = 5;
     title = 'KEEP UP, MORTIMER';
     body = `You push exactly one button too many. Mortimer catches your wrists and pins your hands above you against the cabin wall, leaving you plenty of room to pull away. You do not. His mouth curls into the most infuriatingly satisfied smirk you have ever seen. “You done testing me?” he murmurs. Judging by your expression, absolutely not.`;
-  } else if (route === 'soft') {
-    endingNumber = 1;
-    title = 'HOME IS QUIET WITH YOU';
-    body = `The fire has burned low by the time the conversation fades into comfortable silence. Mortimer gathers you against him as though it is the most natural thing in the world. One hand settles protectively at the back of your head, and then he bends to press a slow kiss to your forehead. “Stay,” he says quietly. There is no loneliness in the cabin anymore.`;
-  } else {
+  } else if (route === 'sarcastic') {
+    endingNumber = 6;
+    title = 'SAME ARGUMENT TOMORROW';
+    body = `You make one last dry remark about how romantic he has become. Mortimer tries to glare. He fails spectacularly. The laugh that escapes him is warm and helpless, and soon his forehead is nearly touching yours while you grin up at him. “You’re impossible,” he says. You remind him that he likes impossible. His smile answers before he does.`;
+  } else if (standing.leaders.length === 2) {
     endingNumber = 7;
     title = 'PUT DOWN ROOTS';
-    body = `By autumn, the path between the two cottages is worn bare. One evening you sit together on Mortimer’s porch beneath a sky full of stars, his arm settled around you while warm light spills from the cabin behind you. Neither of you can remember when visiting became staying. There are still two houses in the clearing. Increasingly, there is only one home.`;
+    body = `There was never only one version of the two of you. Sometimes you teased him, sometimes you softened, sometimes you needed reassurance and sometimes you were the one giving it. By autumn, the path between the cottages is worn bare. One evening you sit together on Mortimer’s porch beneath a sky full of stars, his arm around you while warm light spills from the cabin behind you. Neither of you can remember when visiting became staying.`;
+  } else if (standing.leaders.length >= 3 && standing.leaders.length < CHEMISTRY_KEYS.length) {
+    endingNumber = 8;
+    title = 'THE LONG WAY AROUND';
+    body = `You never fit neatly into one rhythm together. Every time Mortimer thinks he has you figured out, you surprise him again. You are halfway down his porch steps when he reaches after you and catches your hand. His thumb shifts over your knuckles. “Don’t go yet.” The two of you may take the scenic route to everything important, but neither of you is walking it alone anymore.`;
+  } else {
+    endingNumber = 9;
+    title = 'JUST NEIGHBORS';
+    body = `Maybe neither of you ever quite chooses one clear direction. Still, on a cold evening, Mortimer appears at your door with something hidden in one enormous hand: a tiny carved fox, sanded smooth, its ears a little crooked. “For the windowsill,” he mutters. Whatever the two of you are, the path between your cottages remains. So does he.`;
   }
 
   s.endingNumber = endingNumber;
   s.flags.endingTitle = title;
-
-  // Record this ending immediately and permanently before anything else.
   unlockEnding(endingNumber);
 
   if (!s.flags.endingAwarded) {
